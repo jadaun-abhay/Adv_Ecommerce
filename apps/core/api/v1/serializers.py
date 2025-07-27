@@ -42,14 +42,24 @@ class DropdownSerializer(BaseSerializer):
         allow_null=True,
     )
 
+    children = serializers.SerializerMethodField(required=False)
+
     class Meta:
         model = Dropdown
         fields = "__all__"
 
-    def to_representation(self, instance):
-        if "children" in self.fields:
-            self.fields["children"] = DropdownSerializer(instance, many=True)
-        return super().to_representation(instance)
+    def get_children(self, instance):
+        if "children" not in self.fields:
+            return
+        elif isinstance(instance, dict):
+            return []
+        else:
+            queryset = instance.children.all()
+            return DropdownSerializer(
+                queryset,
+                many=True,
+                fields=self.fields,
+            ).data
 
     def validate(self, data):
         parent_id = data.get("pid")
@@ -62,4 +72,4 @@ class DropdownSerializer(BaseSerializer):
         return data
 
     def save(self):
-        return Dropdown.objects.update_or_create(**self.validated_data)
+        return Dropdown.objects.update_or_create(**self.validated_data)[0]

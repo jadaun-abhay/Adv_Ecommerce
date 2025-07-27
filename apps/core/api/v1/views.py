@@ -14,27 +14,38 @@ class BaseAV(APIView):
 
 class DropdownAV(BaseAV):
 
-    def get_instance(uuid):
+    def get_instance(self, uuid):
         queryset = Dropdown.objects.filter(uuid=uuid)
-        return queryset.first()
+        return queryset
 
     def get(self, request):
         uuid = request.query_params.get("uuid", None)
+        fields = request.data.get("fields", [])
+        exclude = request.data.get("exclude", [])
 
         if uuid is None:
-            queryset = Dropdown.objects.all()
-            serializer = DropdownSerializer(queryset, many=True)
+            queryset = Dropdown.objects.filter(parent=None)
+            serializer = DropdownSerializer(
+                queryset,
+                many=True,
+                fields=fields,
+                exclude=exclude,
+            )
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:
             instance = self.get_instance(uuid)
-            serializer = DropdownSerializer(instance)
+            serializer = DropdownSerializer(
+                instance,
+                many=True,
+                fields=fields,
+                exclude=exclude,
+            )
             return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
         data = request.data
         serializer = DropdownSerializer(data=data)
         if serializer.is_valid():
-            serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
