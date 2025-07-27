@@ -1,0 +1,5 @@
+**/__pycache__/
+.env
+config/settings.py
+**/migrations/**
+!**/migrations/__init__.py
