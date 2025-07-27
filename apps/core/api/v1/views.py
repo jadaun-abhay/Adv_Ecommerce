@@ -44,8 +44,15 @@ class DropdownAV(BaseAV):
 
     def post(self, request):
         data = request.data
-        serializer = DropdownSerializer(data=data)
+        fields = data.pop("fields", [])
+        exclude = data.pop("exclude", [])
+        serializer = DropdownSerializer(
+            data=data,
+            fields=fields,
+            exclude=exclude,
+        )
         if serializer.is_valid():
+            serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

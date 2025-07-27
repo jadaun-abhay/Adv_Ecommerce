@@ -30,6 +30,9 @@ class BaseSerializer(serializers.ModelSerializer):
 
 
 class DropdownCustomRelatedField(serializers.RelatedField):
+    def to_representation(self, value):
+        return Dropdown.objects.filter(id=value).first().uuid
+
     def to_internal_value(self, value):
         return Dropdown.objects.filter(uuid=value).first().id
 
@@ -38,7 +41,6 @@ class DropdownSerializer(BaseSerializer):
     pid = DropdownCustomRelatedField(
         source="parent_id",
         queryset=Dropdown.objects.all(),
-        write_only=True,
         allow_null=True,
     )
 
