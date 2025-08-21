@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.core.models import BaseModel, Dropdown
+from apps.core.models import BaseModel, Dropdown, User, UploadFile
 
 
 # Write your serializers here
@@ -75,3 +75,41 @@ class DropdownSerializer(BaseSerializer):
 
     def save(self):
         return Dropdown.objects.update_or_create(**self.validated_data)[0]
+
+
+class UserSerializer(BaseSerializer):
+    class Meta:
+        model = User
+        fields = "__all__"
+
+    def save(self):
+        password = self.validated_data.get("password")
+        user = User(**self.validated_data)
+        user.set_password(password)
+        user.save()
+        return user
+
+
+class UserCustomRelatedField(serializers.RelatedField):
+    def to_representation(self, value):
+        return User.objects.filter(id=value).first().uuid
+
+    def to_internal_value(self, uuid):
+        return User.objects.filter(uuid=uuid).first().id
+
+
+class UploadFileSerializer(BaseSerializer):
+    uid = UserCustomRelatedField(
+        source="user_id",
+        queryset=User.objects.all(),
+        allow_null=True,
+    )
+    file = serializers.FileField()
+
+    class Meta:
+        model = UploadFile
+        fields = "__all__"
+
+    def save(self):
+        instance = UploadFile.objects.create(**self.validated_data)
+        return instance

@@ -4,6 +4,7 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 from apps.core.enums import Status, FileType
+from apps.core.functions import get_type_path
 from apps.core.managers import DeleteFilterManager
 
 # Create your models here.
@@ -37,12 +38,27 @@ class User(AbstractUser, BaseModel):
     USERNAME_FIELD = "username"
     REQUIRED_FIELDS = []
 
+    def user_data(self):
+        return {
+            "username": self.username,
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "email": self.email,
+            "full_name": self.get_full_name(),
+            "profile": self.get_profile(),
+        }
+
+    def get_profile(self):
+        profile = UploadFile.objects.filter(user=self, type=FileType.PROFILE).only(
+            "file"
+        )
+        return profile.first().file.url
+
 
 class UploadFile(BaseModel):
-    type: str
-
     def get_path(self, filename):
-        pass
+        _path: str = get_type_path(self.type, self.user_id)
+        return f"{_path}/{filename}"
 
     file = models.FileField(upload_to=get_path)
     type = models.IntegerField(default=FileType.WAREHOUSE_IMAGES)
@@ -51,4 +67,23 @@ class UploadFile(BaseModel):
         on_delete=models.SET_NULL,
         null=True,
         related_name="files",
+    )
+
+
+class Roles(BaseModel):
+    role = models.CharField(max_length=15)
+
+
+class UserRole(BaseModel):
+    role = models.ForeignKey(
+        Roles,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="user_roles",
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="users",
     )
