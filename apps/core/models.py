@@ -11,6 +11,14 @@ from apps.core.managers import DeleteFilterManager
 
 
 class BaseModel(models.Model):
+
+    BASE_MODEL_FIELD = [
+        "uuid",
+        "status",
+        "created_at",
+        "updated_at",
+    ]
+
     uuid = models.UUIDField(default=uuid6.uuid6)
     status = models.IntegerField(default=Status.CREATED)
     created_at = models.DateTimeField(auto_now_add=True)

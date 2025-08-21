@@ -1,8 +1,13 @@
 import base64
 
-from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.utils import (
+    extend_schema,
+    OpenApiParameter,
+    OpenApiResponse,
+    inline_serializer,
+)
 from drf_spectacular.types import OpenApiTypes
-from rest_framework import status
+from rest_framework import status, serializers
 from rest_framework.response import Response
 
 from django.conf import settings
@@ -12,6 +17,7 @@ from base.views import BaseAV
 from base.enums import RoleEnum
 
 from apps.core.api.v1.serializers import (
+    BaseSerializer,
     DropdownSerializer,
     UserSerializer,
     UploadFileSerializer,
@@ -23,6 +29,8 @@ from apps.core.models import Dropdown, User
 
 
 class DropdownAV(BaseAV):
+    "Dropdown API View"
+
     authentication = {
         "get": True,
         "post": True,
@@ -37,9 +45,48 @@ class DropdownAV(BaseAV):
         return queryset
 
     @extend_schema(
-        request={},
+        request={
+            "application/json": {
+                "type": "object",
+                "properties": {
+                    "uuid": {
+                        "type": "string",
+                        "format": "uuid",
+                    },
+                },
+            }
+        },
         responses={
-            "200": DropdownSerializer,
+            "200": OpenApiResponse(
+                response=inline_serializer(
+                    name="DropdownRecursiveSerializer",
+                    fields={
+                        "uuid": serializers.UUIDField(),
+                        "pid": serializers.UUIDField(allow_null=True),
+                        "children": DropdownSerializer(
+                            exclude=[
+                                "id",
+                                "status",
+                                "updated_at",
+                                "created_at",
+                                "parent",
+                                "children",
+                            ],
+                            many=True,
+                        ),
+                        "label": serializers.CharField(),
+                    },
+                ),
+                description="Indicates that the operation is successfull.",
+            ),
+            "401": OpenApiResponse(
+                response={
+                    "msg": {
+                        "type": "string",
+                    },
+                },
+                description="Indicates that the user is not authenticated.",
+            ),
         },
     )
     def get(self, request):
@@ -67,9 +114,47 @@ class DropdownAV(BaseAV):
             return Response(serializer.data, status=status.HTTP_200_OK)
 
     @extend_schema(
-        request=DropdownSerializer,
+        request={
+            "application/json": {
+                "type": "object",
+                "properties": {
+                    "pid": {
+                        "type": "string or null",
+                        "format": "uuid",
+                        "description": "Parent's UUID",
+                    },
+                    "label": {
+                        "type": "string",
+                        "format": "string",
+                        "description": "New Dropdown's label",
+                    },
+                },
+            }
+        },
         responses={
-            "200": DropdownSerializer,
+            "200": inline_serializer(
+                name="DropdownRecursiveSerializer",
+                fields={
+                    "uuid": serializers.UUIDField(),
+                    "pid": serializers.UUIDField(allow_null=True),
+                    "children": DropdownSerializer(
+                        exclude=[
+                            "id",
+                            "status",
+                            "updated_at",
+                            "created_at",
+                            "parent",
+                            "children",
+                        ],
+                        many=True,
+                    ),
+                    "label": serializers.CharField(),
+                },
+                required=[
+                    "uuid",
+                    "label",
+                ],
+            )
         },
     )
     def post(self, request):

@@ -1,3 +1,5 @@
+from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.types import OpenApiTypes
 from rest_framework import serializers
 
 from apps.core.models import BaseModel, Dropdown, User, UploadFile
@@ -29,6 +31,7 @@ class BaseSerializer(serializers.ModelSerializer):
                 self.fields.pop(field)
 
 
+@extend_schema_field(field=OpenApiTypes.UUID)
 class DropdownCustomRelatedField(serializers.RelatedField):
     def to_representation(self, value):
         return Dropdown.objects.filter(id=value).first().uuid
