@@ -1,6 +1,6 @@
 from rest_framework.permissions import BasePermission
 
-from base.enums import RoleEnum
+from base.api.v1.enums import RoleEnum
 from apps.core.models import UserRole
 
 # Write your permissions here

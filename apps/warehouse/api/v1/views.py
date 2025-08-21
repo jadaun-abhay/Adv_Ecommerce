@@ -9,7 +9,7 @@ from apps.core.enums import Status
 from apps.warehouse.api.v1.serializers import CategorySerializer, ProductSerializer
 from apps.warehouse.models import Category, Product
 
-from base.enums import RoleEnum
+from base.api.v1.enums import RoleEnum
 
 
 # Write your views here

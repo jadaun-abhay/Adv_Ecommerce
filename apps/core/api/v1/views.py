@@ -13,11 +13,10 @@ from rest_framework.response import Response
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
 
-from base.views import BaseAV
-from base.enums import RoleEnum
+from base.api.v1.views import BaseAV
+from base.api.v1.enums import RoleEnum
 
 from apps.core.api.v1.serializers import (
-    BaseSerializer,
     DropdownSerializer,
     UserSerializer,
     UploadFileSerializer,

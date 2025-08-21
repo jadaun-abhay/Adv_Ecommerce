@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.core.api.v1.serializers import BaseSerializer
+from base.api.v1.serializers import BaseSerializer
 from apps.core.models import UploadFile
 from apps.warehouse.models import Category, Product
 

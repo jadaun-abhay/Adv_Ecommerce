@@ -2,33 +2,11 @@ from drf_spectacular.utils import extend_schema_field
 from drf_spectacular.types import OpenApiTypes
 from rest_framework import serializers
 
-from apps.core.models import BaseModel, Dropdown, User, UploadFile
+from apps.core.models import Dropdown, User, UploadFile
 
+from base.api.v1.serializers import BaseSerializer
 
 # Write your serializers here
-
-
-class BaseSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = BaseModel
-        fields = "__all__"
-
-    def __init__(self, *args, **kwargs):
-        fields = kwargs.pop("fields", None)
-        exclude = kwargs.pop("exclude", None)
-
-        super(BaseSerializer, self).__init__(*args, **kwargs)
-
-        if fields is not None:
-            allowed = set(fields)
-            existing = set(self.fields.keys())
-            for field in existing.difference(allowed):
-                self.fields.pop(field)
-        elif exclude is not None:
-            not_allowed = set(exclude)
-            for field in not_allowed:
-                self.fields.pop(field)
 
 
 @extend_schema_field(field=OpenApiTypes.UUID)

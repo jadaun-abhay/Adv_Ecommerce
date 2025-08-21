@@ -1,6 +1,6 @@
 from rest_framework.views import APIView
 
-from base.permissions import APIAuthenticationPermission, APIAccessPermission
+from base.api.v1.permissions import APIAuthenticationPermission, APIAccessPermission
 
 # Write your views here
 
