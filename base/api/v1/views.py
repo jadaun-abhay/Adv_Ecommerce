@@ -13,3 +13,8 @@ class BaseAV(APIView):
     ]
 
     allowed_roles: list
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        for method in self.allowed_methods:
+            method = method.lower()
