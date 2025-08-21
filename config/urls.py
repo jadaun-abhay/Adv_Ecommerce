@@ -51,6 +51,11 @@ urlpatterns = [
         include("apps.core.api.v1.urls"),
         name="core",
     ),
+    path(
+        "api/warehouse/",
+        include("apps.warehouse.api.v1.urls"),
+        name="warehouse",
+    ),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
