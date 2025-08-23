@@ -21,6 +21,7 @@ def fetch_user_roles(request) -> List[UserRole]:
                 flat=True,
             )
         )
+        print("master_roles", roles)
     else:
         roles = list(
             UserRole.objects.filter(user=request.user)

@@ -38,7 +38,7 @@ class APIAccessPermission(BasePermission):
 
         authorized_roles: list = []
         if not allowed_roles:
-            return True and request.user.is_authenticated
+            return request.user.is_authenticated
         existing_roles = list(
             UserRole.objects.filter(user=request.user).values_list("uuid")
         )
@@ -50,7 +50,11 @@ class APIAccessPermission(BasePermission):
                 )
             )
             authorized_roles.extend(roles)
-        if set(authorized_roles).intersection(set(existing_roles)):
-            return True and request.user.is_authenticated
+        if request.session["is_master"]:
+            return True
+        elif set(authorized_roles).intersection(set(existing_roles)):
+            if request.session["is_master"]:
+                return True
+            return request.user.is_authenticated
         else:
-            return False and request.user.is_authenticated
+            return False
