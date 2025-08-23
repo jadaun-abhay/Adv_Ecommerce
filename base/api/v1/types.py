@@ -1,0 +1,2 @@
+class CustomErrorResponseType:
+    msg: str
