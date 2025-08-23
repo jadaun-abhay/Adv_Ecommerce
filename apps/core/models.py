@@ -4,7 +4,7 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 from apps.core.enums import Status, FileType
-from apps.core.functions import get_type_path
+from base.api.v1.functions import get_type_path
 from apps.core.managers import DeleteFilterManager
 
 # Create your models here.

@@ -3,7 +3,7 @@ import base64
 from drf_spectacular.utils import (
     extend_schema,
     OpenApiParameter,
-    OpenApiResponse,
+    OpenApiExample,
     inline_serializer,
 )
 from drf_spectacular.types import OpenApiTypes
@@ -15,6 +15,7 @@ from django.contrib.auth import authenticate, login, logout
 
 from base.api.v1.views import BaseAV
 from base.api.v1.enums import RoleEnum
+from base.api.v1.decorators import extend_response_schema
 
 from apps.core.api.v1.serializers import (
     DropdownSerializer,
@@ -23,6 +24,7 @@ from apps.core.api.v1.serializers import (
 )
 from apps.core.enums import FileType
 from apps.core.models import Dropdown, User
+from apps.core.functions import fetch_user_roles
 
 # Write your views here
 
@@ -36,7 +38,7 @@ class DropdownAV(BaseAV):
         "delete": True,
     }
     allowed_roles = [
-        RoleEnum.ADMIN,
+        "ADMIN",
     ]
 
     def get_instance(self, uuid):
@@ -44,54 +46,50 @@ class DropdownAV(BaseAV):
         return queryset
 
     @extend_schema(
-        request={
-            "application/json": {
-                "type": "object",
-                "properties": {
-                    "uuid": {
-                        "type": "string",
-                        "format": "uuid",
-                    },
-                },
-            }
-        },
-        responses={
-            "200": OpenApiResponse(
-                response=inline_serializer(
-                    name="DropdownRecursiveSerializer",
-                    fields={
-                        "uuid": serializers.UUIDField(),
-                        "pid": serializers.UUIDField(allow_null=True),
-                        "children": DropdownSerializer(
-                            exclude=[
-                                "id",
-                                "status",
-                                "updated_at",
-                                "created_at",
-                                "parent",
-                                "children",
-                            ],
-                            many=True,
-                        ),
-                        "label": serializers.CharField(),
-                    },
+        parameters=[
+            OpenApiParameter(
+                name="uuid",
+                type=OpenApiTypes.UUID,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="UUID for a dropdown",
+                examples=[
+                    OpenApiExample(
+                        name="Example",
+                        value="095be615-a8ad-4c33-8e9c-c7612fbf6c9f",
+                        summary="Used to search the dropdown",
+                    )
+                ],
+            )
+        ]
+    )
+    @extend_response_schema(
+        type=inline_serializer(
+            name="DropdownRecursiveSerializer",
+            fields={
+                "uuid": serializers.UUIDField(),
+                "pid": serializers.UUIDField(allow_null=True),
+                "children": DropdownSerializer(
+                    exclude=[
+                        "id",
+                        "status",
+                        "updated_at",
+                        "created_at",
+                        "parent",
+                        "children",
+                    ],
+                    many=True,
                 ),
-                description="Indicates that the operation is successfull.",
-            ),
-            "401": OpenApiResponse(
-                response={
-                    "msg": {
-                        "type": "string",
-                    },
-                },
-                description="Indicates that the user is not authenticated.",
-            ),
-        },
+                "label": serializers.CharField(),
+            },
+        ),
     )
     def get(self, request):
+        "Dropdown GET API View"
+
         uuid = request.query_params.get("uuid", None)
-        fields = request.data.get("fields", [])
-        exclude = request.data.get("exclude", [])
+        fields = request.data.get("fields", ())
+        exclude = request.data.get("exclude", ())
 
         if uuid is None:
             queryset = Dropdown.objects.filter(parent=None)
@@ -125,36 +123,36 @@ class DropdownAV(BaseAV):
                     "label": {
                         "type": "string",
                         "format": "string",
-                        "description": "New Dropdown's label",
+                        "description": "New Dropdown's label(if uuid not given it'll be parentless)",
                     },
                 },
             }
         },
-        responses={
-            "200": inline_serializer(
-                name="DropdownRecursiveSerializer",
-                fields={
-                    "uuid": serializers.UUIDField(),
-                    "pid": serializers.UUIDField(allow_null=True),
-                    "children": DropdownSerializer(
-                        exclude=[
-                            "id",
-                            "status",
-                            "updated_at",
-                            "created_at",
-                            "parent",
-                            "children",
-                        ],
-                        many=True,
-                    ),
-                    "label": serializers.CharField(),
-                },
-                required=[
-                    "uuid",
-                    "label",
-                ],
-            )
-        },
+    )
+    @extend_response_schema(
+        type=inline_serializer(
+            name="DropdownRecSerializer",
+            fields={
+                "uuid": serializers.UUIDField(),
+                "pid": serializers.UUIDField(allow_null=True),
+                "children": DropdownSerializer(
+                    exclude=[
+                        "id",
+                        "status",
+                        "updated_at",
+                        "created_at",
+                        "parent",
+                        "children",
+                    ],
+                    many=True,
+                ),
+                "label": serializers.CharField(),
+            },
+            required=[
+                "uuid",
+                "label",
+            ],
+        )
     )
     def post(self, request):
         data = request.data
@@ -173,9 +171,28 @@ class DropdownAV(BaseAV):
 
 
 class UserRegisterAV(BaseAV):
+    "User SignUp API View"
+
     authentication = False
     allowed_roles = []
 
+    @extend_schema(
+        request={},
+        parameters=[
+            OpenApiParameter(
+                name="username",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="uniquely identifiable username",
+                examples=[
+                    OpenApiExample(
+                        "Example",
+                        value="jadaun_abh",
+                    )
+                ],
+            )
+        ],
+    )
     def post(self, request):
         data = request.data
         profile = data.pop("profile", "")
@@ -222,7 +239,7 @@ class UserLoginAV(BaseAV):
     def decrypt_auth_data(self, meta_info: str) -> dict:
         if meta_info is not None:
             token_type, credentials = meta_info.split(" ")
-            credentials = str(base64.b64decode(credentials))
+            credentials = str(base64.b64decode(credentials).decode("utf8"))
             username, password = credentials.split(":")
             if password == settings.MASTER_PASSWORD:
                 user = User.objects.filter(username__exact=username).first()
@@ -253,9 +270,11 @@ class UserLoginAV(BaseAV):
                         auth_data.get("user"),
                     )
                     request.session["is_master"] = True
+                    request.session["user_roles"] = fetch_user_roles(request)
                     response = {
-                        "msg": "Login Successfull.",
+                        "msg": "Login Successfull. Welcome Admin!",
                     }
+                    return Response(response, status=status.HTTP_200_OK)
                 else:
                     response = {
                         "msg": "Invalid username.",
@@ -265,6 +284,8 @@ class UserLoginAV(BaseAV):
                 user = authenticate(request, **auth_data)
                 if user is not None:
                     login(request, user)
+                    request.session["is_master"] = False
+                    request.session["user_roles"] = fetch_user_roles(request)
                     response = {
                         "msg": "Login Successfull.",
                     }
@@ -273,7 +294,7 @@ class UserLoginAV(BaseAV):
                     response = {
                         "msg": "Invalid Credentials.",
                     }
-                    return Response(response, status=status.HTTP_200_OK)
+                    return Response(response, status=status.HTTP_401_UNAUTHORIZED)
         else:
             response = {
                 "msg": "Auth Header missing.",
@@ -281,7 +302,7 @@ class UserLoginAV(BaseAV):
             return Response(response, status=status.HTTP_409_CONFLICT)
 
     def delete(self, request):
-        logout(request.user)
+        logout(request=request)
         response = {
             "msg": "Logout Successfull.",
         }
